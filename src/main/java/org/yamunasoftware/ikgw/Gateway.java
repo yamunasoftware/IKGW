@@ -8,7 +8,6 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
@@ -18,40 +17,54 @@ public class Gateway {
   private static final Logger logger = LoggerFactory.getLogger(Gateway.class);
 
   public static void main(String[] args) {
+    HashMap<String, String> systemInfo = Input.getSystemInfo();
+    String deviceID = systemInfo.get("SYSTEM_ID");
+    String kafkaTopic = systemInfo.get("KAFKA_TOPIC");
+    String kafkaURL = systemInfo.get("KAFKA_URL");
+    KafkaProducer<String, String> producer = setupProducer(deviceID, kafkaURL);
+
     while (true) {
       try {
-        sendMessage();
-      } catch (Exception e) {
-        logger.error("Error: Main Execution\n{}\n", e.getMessage());
+        sendMessage(producer, deviceID, kafkaTopic);
+        Thread.sleep(pollingPeriod);
       }
 
-      try {
-        Thread.sleep(pollingPeriod);
-      } catch (InterruptedException e) {
+      catch (InterruptedException e) {
+        producer.flush();
+        producer.close();
         Thread.currentThread().interrupt();
         break;
+      }
+
+      catch (Exception e) {
+        logger.error("Error: Main Execution\n{}\n", e.getMessage());
       }
     }
   }
 
-  private static void sendMessage() throws Exception {
-    HashMap<String, String> systemInfo = Input.getSystemInfo();
-    String deviceID = systemInfo.get("SYSTEM_ID");
-    String key = deviceID + "||" + Instant.now().getEpochSecond();
+  private static void sendMessage(KafkaProducer<String, String> producer, String id, String topic) throws Exception {
+    String message = buildMessage(id);
+    ProducerRecord<String, String> record = new ProducerRecord<>(topic, id, message);
+    RecordMetadata metadata = producer.send(record).get();
+    logger.info("Sent message from device {}\nPartition: {}\nOffset: {}\nTimestamp: {}\n",
+        id, metadata.partition(), metadata.offset(), metadata.timestamp());
+  }
 
-    Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, systemInfo.get("KAFKA_URL"));
-    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
-    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
-    props.put(ProducerConfig.ACKS_CONFIG, "all");
-    props.put(ProducerConfig.CLIENT_ID_CONFIG, deviceID);
+  private static KafkaProducer<String, String> setupProducer(String id, String url) {
+    Properties properties = new Properties();
+    properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, url);
+    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
+    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
+    properties.put(ProducerConfig.ACKS_CONFIG, "all");
+    properties.put(ProducerConfig.CLIENT_ID_CONFIG, id);
+    properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
+    properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
 
-    try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
-      String message = buildMessage(deviceID);
-      ProducerRecord<String, String> record = new ProducerRecord<>(systemInfo.get("KAFKA_TOPIC"), key, message);
-      RecordMetadata metadata = producer.send(record).get();
-      logger.info("\nSent:\nKey:{}", record.key());
-    }
+    properties.put(ProducerConfig.RETRIES_CONFIG, 3);
+    properties.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 60000);
+    properties.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 15000);
+    properties.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+    return new KafkaProducer<>(properties);
   }
 
   private static String buildMessage(String id) {
