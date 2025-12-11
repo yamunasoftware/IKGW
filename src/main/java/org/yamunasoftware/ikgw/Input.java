@@ -84,11 +84,6 @@ public class Input {
           String url = line.replace("KAFKA_URL=", "");
           systemInfo.put("KAFKA_URL", url);
         }
-
-        if (line.contains("KAFKA_TOPIC")) {
-          String topic = line.replace("KAFKA_TOPIC=", "");
-          systemInfo.put("KAFKA_TOPIC", topic);
-        }
       }
     }
 

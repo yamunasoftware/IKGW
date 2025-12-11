@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Properties;
 
 public class Gateway {
+  private static final String topic = "IMADDS";
   private static final int pollingPeriod = 10000;
   private static final Logger logger = LoggerFactory.getLogger(Gateway.class);
 
@@ -20,12 +21,11 @@ public class Gateway {
     HashMap<String, String> systemInfo = Input.getSystemInfo();
     String deviceID = systemInfo.get("SYSTEM_ID");
     String kafkaURL = systemInfo.get("KAFKA_URL");
-    String kafkaTopic = systemInfo.get("KAFKA_TOPIC");
     KafkaProducer<String, String> producer = setupProducer(deviceID, kafkaURL);
 
     while (true) {
       try {
-        sendMessage(producer, deviceID, kafkaTopic);
+        sendMessage(producer, deviceID);
         Thread.sleep(pollingPeriod);
       }
 
@@ -42,7 +42,7 @@ public class Gateway {
     }
   }
 
-  private static void sendMessage(KafkaProducer<String, String> producer, String id, String topic) throws Exception {
+  private static void sendMessage(KafkaProducer<String, String> producer, String id) throws Exception {
     String message = buildMessage(id);
     ProducerRecord<String, String> record = new ProducerRecord<>(topic, id, message);
     RecordMetadata metadata = producer.send(record).get();
