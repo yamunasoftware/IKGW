@@ -26,7 +26,7 @@ public class Main {
 
     while (true) {
       try {
-        sendMessage(producer, deviceID, deviceType);
+        sendMessages(producer, deviceID, deviceType);
         Thread.sleep(pollingPeriod);
       }
 
@@ -43,12 +43,38 @@ public class Main {
     }
   }
 
-  private static void sendMessage(KafkaProducer<String, String> producer, String id, String type) throws Exception {
-    String message = buildMessage(id, type);
-    ProducerRecord<String, String> record = new ProducerRecord<>(topic, id, message);
-    RecordMetadata metadata = producer.send(record).get();
-    logger.info("Sent message from device {}\nPartition: {}\nOffset: {}\nTimestamp: {}\n",
-        id, metadata.partition(), metadata.offset(), metadata.timestamp());
+  private static void sendMessages(KafkaProducer<String, String> producer, String id, String type) throws Exception {
+    ArrayList<String> messages = buildMessages(id, type);
+    for (String message : messages) {
+      ProducerRecord<String, String> record = new ProducerRecord<>(topic, id, message);
+      RecordMetadata metadata = producer.send(record).get();
+      logger.info("Sent message from device {}\nPartition: {}\nOffset: {}\nTimestamp: {}\n",
+          id, metadata.partition(), metadata.offset(), metadata.timestamp());
+    }
+  }
+
+  private static ArrayList<String> buildMessages(String id, String type) {
+    ArrayList<String> messages = new ArrayList<>();
+    ArrayList<HashMap<Integer, HashMap<String, Float>>> data = Input.dataReadout();
+
+    for (HashMap<Integer, HashMap<String, Float>> deviceData : data) {
+      for (Integer channel : deviceData.keySet()) {
+        StringBuilder message = new StringBuilder("{\"deviceID\":\"").append(id).append("\",")
+            .append("\"deviceType\":\"").append(type).append("\",");
+
+        HashMap<String, Float> values = deviceData.get(channel);
+        double temperature = values.get("Temperature");
+        double pressure = values.get("Pressure");
+        double humidity = values.get("Humidity");
+
+        message.append("\"channel\":").append(channel).append(",");
+        message.append("\"temperature\":").append(temperature).append(",");
+        message.append("\"pressure\":").append(pressure).append(",");
+        message.append("\"humidity\":").append(humidity).append("}");
+        messages.add(message.toString());
+      }
+    }
+    return messages;
   }
 
   private static KafkaProducer<String, String> setupProducer(String id, String url) {
@@ -66,32 +92,5 @@ public class Main {
     properties.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 15000);
     properties.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
     return new KafkaProducer<>(properties);
-  }
-
-  private static String buildMessage(String id, String type) {
-    StringBuilder message = new StringBuilder("{\"deviceID\":\"").append(id).append("\",")
-        .append("\"deviceType\":\"").append(type).append("\",");
-    ArrayList<HashMap<Integer, HashMap<String, Float>>> data = Input.dataReadout();
-    message.append("\"deviceData\":[");
-    int count = 0;
-
-    for (HashMap<Integer, HashMap<String, Float>> deviceData : data) {
-      for (Integer channel : deviceData.keySet()) {
-        if (count != 0) message.append(",");
-        HashMap<String, Float> values = deviceData.get(channel);
-        double temperature = values.get("Temperature");
-        double pressure = values.get("Pressure");
-        double humidity = values.get("Humidity");
-
-        message.append("{\"channel\":").append(channel).append(",");
-        message.append("\"temperature\":").append(temperature).append(",");
-        message.append("\"pressure\":").append(pressure).append(",");
-        message.append("\"humidity\":").append(humidity).append("}");
-      }
-      count++;
-    }
-
-    message.append("]}");
-    return message.toString();
   }
 }
