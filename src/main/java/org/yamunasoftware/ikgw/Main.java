@@ -31,14 +31,17 @@ public class Main {
       }
 
       catch (InterruptedException e) {
+        logger.info("IKGW Stream Interrupted...\nClosing IKGW...");
         producer.flush();
         producer.close();
+
         Thread.currentThread().interrupt();
+        logger.info("IKGW Closed Successfully.");
         break;
       }
 
       catch (Exception e) {
-        logger.error("Error: Main Execution\n{}\n", e.getMessage());
+        logger.error("Error: Failed to Send Message\n{}\n{}\n", e.getMessage(), e.getStackTrace());
       }
     }
   }

@@ -58,7 +58,7 @@ public class Input {
     }
 
     catch (Exception e) {
-      logger.error("Error: Unable to Read Sensor on Channel {}\n{}\n", channel, e.getMessage());
+      logger.error("Error: Unable to Read Sensor on Channel {}\n{}\n{}\n", channel, e.getMessage(), e.getStackTrace());
     }
     return sensorData;
   }
@@ -93,15 +93,15 @@ public class Input {
     }
 
     catch (FileNotFoundException e) {
-      logger.error("Error: Unable to Open System Info\n{}\n", e.getMessage());
+      logger.error("Error: Unable to Find System Info\n{}\n{}\n", e.getMessage(), e.getStackTrace());
     }
 
     catch (IOException e) {
-      logger.error("Error: Unable to Read System Info\n{}\n", e.getMessage());
+      logger.error("Error: Unable to Open System Info\n{}\n{}\n", e.getMessage(), e.getStackTrace());
     }
 
     catch (Exception e) {
-      logger.error("Error: Error While Reading System Info\n{}\n", e.getMessage());
+      logger.error("Error: Unable to Read System Info\n{}\n{}\n", e.getMessage(), e.getStackTrace());
     }
     return systemInfo;
   }
