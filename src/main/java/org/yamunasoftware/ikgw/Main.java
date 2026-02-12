@@ -18,31 +18,37 @@ public class Main {
   private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
   public static void main(String[] args) {
-    HashMap<String, String> systemInfo = Input.getSystemInfo();
-    String deviceID = systemInfo.get("SYSTEM_ID");
-    String deviceType = systemInfo.get("SYSTEM_TYPE");
-    String kafkaURL = systemInfo.get("KAFKA_URL");
-    KafkaProducer<String, String> producer = setupProducer(deviceID, kafkaURL);
+    try {
+      HashMap<String, String> systemInfo = Input.getSystemInfo();
+      String deviceID = systemInfo.get("SYSTEM_ID");
+      String deviceType = systemInfo.get("SYSTEM_TYPE");
+      String kafkaURL = systemInfo.get("KAFKA_URL");
+      KafkaProducer<String, String> producer = setupProducer(deviceID, kafkaURL);
 
-    while (true) {
-      try {
-        sendMessages(producer, deviceID, deviceType);
-        Thread.sleep(pollingPeriod);
+      while (true) {
+        try {
+          sendMessages(producer, deviceID, deviceType);
+          Thread.sleep(pollingPeriod);
+        }
+
+        catch (InterruptedException e) {
+          logger.info("IKGW Stream Interrupted...\nClosing IKGW...");
+          producer.flush();
+          producer.close();
+
+          Thread.currentThread().interrupt();
+          logger.info("IKGW Closed Successfully.");
+          break;
+        }
+
+        catch (Exception e) {
+          logger.error("Error: Failed to Send Message", e);
+        }
       }
+    }
 
-      catch (InterruptedException e) {
-        logger.info("IKGW Stream Interrupted...\nClosing IKGW...");
-        producer.flush();
-        producer.close();
-
-        Thread.currentThread().interrupt();
-        logger.info("IKGW Closed Successfully.");
-        break;
-      }
-
-      catch (Exception e) {
-        logger.error("Error: Failed to Send Message\n{}\n{}\n", e.getMessage(), e.getStackTrace());
-      }
+    catch (Exception e) {
+      logger.error("Error: Failed to Setup Kafka Producer", e);
     }
   }
 

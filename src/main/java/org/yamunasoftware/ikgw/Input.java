@@ -22,16 +22,15 @@ import one.microproject.rpi.hardware.gpio.sensors.BME280Builder;
 import one.microproject.rpi.hardware.gpio.sensors.impl.BME280Impl;
 
 public class Input {
-  private static final String systemInfoFile = ".sysinfo";
-  private static final Logger logger = LoggerFactory.getLogger(Input.class);
-
+  private static final Context context = Pi4J.newAutoContext();
+  private static final int bus = 1;
   private static final int address = 0x70;
   private static final int channels = 8;
 
-  private static final Context context = Pi4J.newAutoContext();
-  private static final I2CConfig config = I2C.newConfigBuilder(context).id("TCA9548A").bus(1).device(address).build();
-  private static final I2CProvider provider = context.provider("linuxfs-i2c");
-  private static final I2C multiplexer = provider.create(config);
+  private static final String multiplexerID = "TCA9548A";
+  private static final String providerID = "linuxfs-i2c";
+  private static final String systemInfoFile = ".sysinfo";
+  private static final Logger logger = LoggerFactory.getLogger(Input.class);
 
   public static ArrayList<HashMap<Integer, HashMap<String, Float>>> dataReadout() {
     ArrayList<HashMap<Integer, HashMap<String, Float>>> readout = new ArrayList<>();
@@ -44,8 +43,7 @@ public class Input {
 
   private static HashMap<Integer, HashMap<String, Float>> readChannel(int channel) {
     HashMap<Integer, HashMap<String, Float>> sensorData = new HashMap<>();
-    int channelByte = 1 << channel;
-    multiplexer.write((byte)(channelByte));
+    initChannel(channel);
 
     try (BME280 bme280 = BME280Builder.get().context(context).build()) {
       HashMap<String, Float> values = new HashMap<>();
@@ -58,9 +56,23 @@ public class Input {
     }
 
     catch (Exception e) {
-      logger.error("Error: Unable to Read Sensor on Channel {}\n{}\n{}\n", channel, e.getMessage(), e.getStackTrace());
+      logger.error("Error: Unable to Read Sensor on Channel {}", channel, e);
     }
     return sensorData;
+  }
+
+  private static void initChannel(int channel) {
+    I2CConfig config = I2C.newConfigBuilder(context).id(multiplexerID).bus(bus).device(address).build();
+    I2CProvider provider = context.provider(providerID);
+
+    try (I2C multiplexer = provider.create(config)) {
+      int channelByte = 1 << channel;
+      multiplexer.write((byte) (channelByte));
+    }
+
+    catch (Exception e) {
+      logger.error("Error: Unable to Initialize Channel {}", channel, e);
+    }
   }
 
   public static HashMap<String, String> getSystemInfo() {
@@ -69,7 +81,7 @@ public class Input {
       InputStream stream = Input.class.getClassLoader().getResourceAsStream(systemInfoFile);
 
       if (stream == null) {
-        throw new FileNotFoundException("Unable to Open System File");
+        throw new FileNotFoundException("Unable to Open " + systemInfoFile);
       }
 
       BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
@@ -93,15 +105,15 @@ public class Input {
     }
 
     catch (FileNotFoundException e) {
-      logger.error("Error: Unable to Find System Info\n{}\n{}\n", e.getMessage(), e.getStackTrace());
+      logger.error("Error: Unable to Find System Info", e);
     }
 
     catch (IOException e) {
-      logger.error("Error: Unable to Open System Info\n{}\n{}\n", e.getMessage(), e.getStackTrace());
+      logger.error("Error: Unable to Open System Info", e);
     }
 
     catch (Exception e) {
-      logger.error("Error: Unable to Read System Info\n{}\n{}\n", e.getMessage(), e.getStackTrace());
+      logger.error("Error: Unable to Read System Info", e);
     }
     return systemInfo;
   }
