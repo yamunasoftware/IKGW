@@ -1,15 +1,15 @@
 package org.yamunasoftware.ikgw;
 
 public class SensorReading {
+  public String deviceType;
   public int channel;
-  public String type;
   public float temperature;
   public float humidity;
   public float pressure;
 
-  public SensorReading(int channel, String type, float temperature, float humidity, float pressure) {
+  public SensorReading(String deviceType, int channel, float temperature, float humidity, float pressure) {
+    this.deviceType = deviceType;
     this.channel = channel;
-    this.type = type;
     this.temperature = temperature;
     this.humidity = humidity;
     this.pressure = pressure / 1000;

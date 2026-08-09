@@ -32,14 +32,14 @@ public class DataReadout {
     return readout;
   }
 
-  private static SensorReading readChannel(int channel, String type) {
+  private static SensorReading readChannel(int channel, String deviceType) {
     initChannel(channel);
     try (BME280 bme280 = BME280Builder.get().context(context).build()) {
       BME280Impl.Data data = bme280.getSensorValues();
       float temperature = data.getTemperature();
       float humidity = data.getRelativeHumidity();
       float pressure = data.getPressure();
-      return new SensorReading(channel, type, temperature, humidity, pressure);
+      return new SensorReading(deviceType, channel, temperature, humidity, pressure);
     }
 
     catch (Exception e) {
