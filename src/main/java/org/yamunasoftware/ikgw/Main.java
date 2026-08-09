@@ -1,5 +1,6 @@
 package org.yamunasoftware.ikgw;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -7,83 +8,47 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
-  private static final String topic = "IMADDS";
-  private static final int pollingPeriod = 10000;
+  private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
   private static final Logger logger = LoggerFactory.getLogger(Main.class);
+  private static final String topic = "imadds";
+  private static final int initialDelay = 2;
+  private static final int pollingPeriod = 10;
 
   public static void main(String[] args) {
-    try {
-      HashMap<String, String> systemInfo = Input.getSystemInfo();
-      String deviceID = systemInfo.get("SYSTEM_ID");
-      String deviceType = systemInfo.get("SYSTEM_TYPE");
-      String kafkaURL = systemInfo.get("KAFKA_URL");
-      KafkaProducer<String, String> producer = setupProducer(deviceID, kafkaURL);
+    String systemId = Conf.getSystemId();
+    String kafkaUrl = Conf.getKafkaUrl();
+    ObjectMapper objectMapper = new ObjectMapper();
 
-      while (true) {
-        try {
-          sendMessages(producer, deviceID, deviceType);
-          Thread.sleep(pollingPeriod);
-        }
-
-        catch (InterruptedException e) {
-          logger.info("IKGW Stream Interrupted...\nClosing IKGW...");
-          producer.flush();
-          producer.close();
-
-          Thread.currentThread().interrupt();
-          logger.info("IKGW Closed Successfully.");
-          break;
-        }
-
-        catch (Exception e) {
-          logger.error("Error: Failed to Send Message", e);
-        }
-      }
+    try (KafkaProducer<String, String> producer = setupProducer(systemId, kafkaUrl)) {
+      Runnable task = () -> sendMessages(systemId, producer, objectMapper);
+      scheduler.scheduleAtFixedRate(task, initialDelay, pollingPeriod, TimeUnit.SECONDS);
     }
 
     catch (Exception e) {
-      logger.error("Error: Failed to Setup Kafka Producer", e);
+      logger.error("Error: Failed to Start Kafka Producer", e);
     }
   }
 
-  private static void sendMessages(KafkaProducer<String, String> producer, String id, String type) throws Exception {
-    ArrayList<String> messages = buildMessages(id, type);
-    for (String message : messages) {
+  private static void sendMessages(String id, KafkaProducer<String, String> producer, ObjectMapper objectMapper) {
+    try {
+      ArrayList<SensorReading> readings = DataReadout.dataReadout();
+      String message = objectMapper.writeValueAsString(readings);
       ProducerRecord<String, String> record = new ProducerRecord<>(topic, id, message);
       RecordMetadata metadata = producer.send(record).get();
       logger.info("Sent message from device {}\nPartition: {}\nOffset: {}\nTimestamp: {}\n",
           id, metadata.partition(), metadata.offset(), metadata.timestamp());
     }
-  }
 
-  private static ArrayList<String> buildMessages(String id, String type) {
-    ArrayList<String> messages = new ArrayList<>();
-    ArrayList<HashMap<Integer, HashMap<String, Float>>> data = Input.dataReadout();
-
-    for (HashMap<Integer, HashMap<String, Float>> deviceData : data) {
-      for (Integer channel : deviceData.keySet()) {
-        StringBuilder message = new StringBuilder("{\"deviceID\":\"").append(id).append("\",")
-            .append("\"deviceType\":\"").append(type).append("\",");
-
-        HashMap<String, Float> values = deviceData.get(channel);
-        double temperature = values.get("Temperature");
-        double pressure = values.get("Pressure");
-        double humidity = values.get("Humidity");
-
-        message.append("\"channel\":").append(channel).append(",");
-        message.append("\"temperature\":").append(temperature).append(",");
-        message.append("\"pressure\":").append(pressure).append(",");
-        message.append("\"humidity\":").append(humidity).append("}");
-        messages.add(message.toString());
-      }
+    catch (Exception e) {
+      logger.error("Error: Failed to Send Message", e);
     }
-    return messages;
   }
 
   private static KafkaProducer<String, String> setupProducer(String id, String url) {
@@ -95,7 +60,6 @@ public class Main {
     properties.put(ProducerConfig.CLIENT_ID_CONFIG, id);
     properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
     properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
-
     properties.put(ProducerConfig.RETRIES_CONFIG, 3);
     properties.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 60000);
     properties.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 15000);
