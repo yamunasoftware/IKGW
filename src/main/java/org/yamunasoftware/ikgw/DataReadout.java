@@ -15,12 +15,12 @@ import one.microproject.rpi.hardware.gpio.sensors.impl.BME280Impl;
 
 public class DataReadout {
   private static final Context context = Pi4J.newAutoContext();
+  private static final Logger logger = LoggerFactory.getLogger(DataReadout.class);
   private static final int bus = 1;
   private static final int address = 0x70;
   private static final int channels = 8;
   private static final String multiplexerID = "TCA9548A";
   private static final String providerID = "linuxfs-i2c";
-  private static final Logger logger = LoggerFactory.getLogger(DataReadout.class);
 
   public static ArrayList<SensorReading> dataReadout() {
     ArrayList<SensorReading> readout = new ArrayList<>();
