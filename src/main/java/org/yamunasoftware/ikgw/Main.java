@@ -22,12 +22,10 @@ public class Main {
   private static final int pollingPeriod = 10;
 
   public static void main(String[] args) {
-    String systemId = Conf.getSystemId();
     String kafkaUrl = Conf.getKafkaUrl();
     ObjectMapper objectMapper = new ObjectMapper();
-
-    try (KafkaProducer<String, String> producer = setupProducer(systemId, kafkaUrl)) {
-      Runnable task = () -> sendMessages(systemId, producer, objectMapper);
+    try (KafkaProducer<String, String> producer = setupProducer(kafkaUrl)) {
+      Runnable task = () -> sendMessages(producer, objectMapper);
       scheduler.scheduleAtFixedRate(task, initialDelay, pollingPeriod, TimeUnit.SECONDS);
     }
 
@@ -36,14 +34,14 @@ public class Main {
     }
   }
 
-  private static void sendMessages(String id, KafkaProducer<String, String> producer, ObjectMapper objectMapper) {
+  private static void sendMessages(KafkaProducer<String, String> producer, ObjectMapper objectMapper) {
     try {
       ArrayList<SensorReading> readings = DataReadout.dataReadout();
       String message = objectMapper.writeValueAsString(readings);
-      ProducerRecord<String, String> record = new ProducerRecord<>(topic, id, message);
+      ProducerRecord<String, String> record = new ProducerRecord<>(topic, message);
       RecordMetadata metadata = producer.send(record).get();
-      logger.info("Sent message from device {}\nPartition: {}\nOffset: {}\nTimestamp: {}\n",
-          id, metadata.partition(), metadata.offset(), metadata.timestamp());
+      logger.info("Sent message with Partition: {}\nOffset: {}\nTimestamp: {}\n",
+          metadata.partition(), metadata.offset(), metadata.timestamp());
     }
 
     catch (Exception e) {
@@ -51,13 +49,12 @@ public class Main {
     }
   }
 
-  private static KafkaProducer<String, String> setupProducer(String id, String url) {
+  private static KafkaProducer<String, String> setupProducer(String url) {
     Properties properties = new Properties();
     properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, url);
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
     properties.put(ProducerConfig.ACKS_CONFIG, "all");
-    properties.put(ProducerConfig.CLIENT_ID_CONFIG, id);
     properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
     properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
     properties.put(ProducerConfig.RETRIES_CONFIG, 3);

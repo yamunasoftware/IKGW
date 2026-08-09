@@ -24,22 +24,25 @@ public class DataReadout {
 
   public static ArrayList<SensorReading> dataReadout() {
     ArrayList<SensorReading> readout = new ArrayList<>();
-    String systemType = Conf.getSystemType();
+    String[] systemConfig = Conf.getSystemConfig();
+    String deviceId = systemConfig[0];
+    String deviceType = systemConfig[1];
+
     for (int channel = 0; channel < channels; channel++) {
-      SensorReading reading = readChannel(channel, systemType);
+      initChannel(channel);
+      SensorReading reading = readChannel(deviceId, deviceType, channel);
       readout.add(reading);
     }
     return readout;
   }
 
-  private static SensorReading readChannel(int channel, String deviceType) {
-    initChannel(channel);
+  private static SensorReading readChannel(String deviceId, String deviceType, int channel) {
     try (BME280 bme280 = BME280Builder.get().context(context).build()) {
       BME280Impl.Data data = bme280.getSensorValues();
       float temperature = data.getTemperature();
       float humidity = data.getRelativeHumidity();
       float pressure = data.getPressure();
-      return new SensorReading(deviceType, channel, temperature, humidity, pressure);
+      return new SensorReading(deviceId, deviceType, channel, temperature, humidity, pressure);
     }
 
     catch (Exception e) {
@@ -51,7 +54,6 @@ public class DataReadout {
   private static void initChannel(int channel) {
     I2CConfig config = I2C.newConfigBuilder(context).id(multiplexerID).bus(bus).device(address).build();
     I2CProvider provider = context.provider(providerID);
-
     try (I2C multiplexer = provider.create(config)) {
       int channelByte = 1 << channel;
       multiplexer.write((byte) (channelByte));
