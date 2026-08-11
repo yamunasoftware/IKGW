@@ -25,7 +25,7 @@ public class Main {
     String kafkaUrl = Conf.getKafkaUrl();
     ObjectMapper objectMapper = new ObjectMapper();
     try (KafkaProducer<String, String> producer = setupProducer(kafkaUrl)) {
-      Runnable task = () -> sendMessages(producer, objectMapper);
+      Runnable task = () -> sendMessage(producer, objectMapper);
       scheduler.scheduleAtFixedRate(task, initialDelay, pollingPeriod, TimeUnit.SECONDS);
     }
 
@@ -34,7 +34,7 @@ public class Main {
     }
   }
 
-  private static void sendMessages(KafkaProducer<String, String> producer, ObjectMapper objectMapper) {
+  private static void sendMessage(KafkaProducer<String, String> producer, ObjectMapper objectMapper) {
     try {
       ArrayList<SensorReading> readings = DataReadout.dataReadout();
       String message = objectMapper.writeValueAsString(readings);
