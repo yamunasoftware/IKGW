@@ -15,18 +15,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
-  private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
   private static final Logger logger = LoggerFactory.getLogger(Main.class);
+  private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
   private static final String topic = "imadds";
-  private static final int initialDelay = 2;
-  private static final int pollingPeriod = 10;
+  private static final int delay = 10;
 
   public static void main(String[] args) {
     String kafkaUrl = Conf.getKafkaUrl();
     ObjectMapper objectMapper = new ObjectMapper();
     try (KafkaProducer<String, String> producer = setupProducer(kafkaUrl)) {
       Runnable task = () -> sendMessage(producer, objectMapper);
-      scheduler.scheduleAtFixedRate(task, initialDelay, pollingPeriod, TimeUnit.SECONDS);
+      scheduler.scheduleAtFixedRate(task, delay, delay, TimeUnit.SECONDS);
     }
 
     catch (Exception e) {
