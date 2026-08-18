@@ -11,8 +11,7 @@ RUN native-image \
     -jar target/*.jar \
     ikgw
 
-FROM alpine:3.23
+FROM debian:trixie
 WORKDIR /main
-RUN apk add --no-cache ca-certificates
 COPY --from=builder /main/ikgw /main/ikgw
 ENTRYPOINT ["/main/ikgw"]
