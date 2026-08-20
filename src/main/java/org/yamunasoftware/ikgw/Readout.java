@@ -13,9 +13,9 @@ import one.microproject.rpi.hardware.gpio.sensors.BME280;
 import one.microproject.rpi.hardware.gpio.sensors.BME280Builder;
 import one.microproject.rpi.hardware.gpio.sensors.impl.BME280Impl;
 
-public class DataReadout {
+public class Readout {
   private static final Context context = Pi4J.newAutoContext();
-  private static final Logger logger = LoggerFactory.getLogger(DataReadout.class);
+  private static final Logger logger = LoggerFactory.getLogger(Readout.class);
   private static final int bus = 1;
   private static final int address = 0x70;
   private static final int channels = 8;

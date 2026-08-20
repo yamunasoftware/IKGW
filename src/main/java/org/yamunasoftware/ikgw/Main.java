@@ -35,7 +35,7 @@ public class Main {
 
   private static void sendMessage(KafkaProducer<String, String> producer, ObjectMapper objectMapper) {
     try {
-      ArrayList<SensorReading> readings = DataReadout.dataReadout();
+      ArrayList<SensorReading> readings = Readout.dataReadout();
       String message = objectMapper.writeValueAsString(readings);
       ProducerRecord<String, String> record = new ProducerRecord<>(topic, message);
       RecordMetadata metadata = producer.send(record).get();
