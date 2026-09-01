@@ -8,17 +8,26 @@ import java.io.IOException;
 
 public class Conf {
   private static final Logger logger = LoggerFactory.getLogger(Conf.class);
-  private static final String systemInfoFile = ".conf";
+  private static final String configFile = ".conf";
 
-  public static String getKafkaUrl() {
+  public static String[] getKafkaConfig() {
+    String[] config = new String[3];
     try {
-      Path path = Path.of(systemInfoFile);
+      Path path = Path.of(configFile);
       String content = Files.readString(path);
       String[] lines = content.split("\n");
 
       for (String line : lines) {
         if (line.contains("KAFKA_URL")) {
-          return line.replace("KAFKA_URL=", "");
+          config[0] = line.replace("KAFKA_URL=", "");
+        }
+
+        else if (line.contains("KAFKA_USERNAME")) {
+          config[1] = line.replace("KAFKA_USERNAME=", "");
+        }
+
+        else if (line.contains("KAFKA_PASSWORD")) {
+          config[2] = line.replace("KAFKA_PASSWORD=", "");
         }
       }
     }
@@ -26,13 +35,13 @@ public class Conf {
     catch (IOException e) {
       logger.error("Error: Unable to Open System Info", e);
     }
-    return null;
+    return config;
   }
 
   public static String[] getSystemConfig() {
     String[] config = new String[2];
     try {
-      Path path = Path.of(systemInfoFile);
+      Path path = Path.of(configFile);
       String content = Files.readString(path);
       String[] lines = content.split("\n");
 

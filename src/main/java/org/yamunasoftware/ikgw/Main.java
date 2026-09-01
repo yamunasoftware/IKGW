@@ -21,9 +21,10 @@ public class Main {
   private static final int delay = 10;
 
   public static void main(String[] args) {
-    String kafkaUrl = Conf.getKafkaUrl();
+    String[] kafkaConfig = Conf.getKafkaConfig();
     ObjectMapper objectMapper = new ObjectMapper();
-    try (KafkaProducer<String, String> producer = setupProducer(kafkaUrl)) {
+
+    try (KafkaProducer<String, String> producer = setupProducer(kafkaConfig)) {
       Runnable task = () -> sendMessage(producer, objectMapper);
       scheduler.scheduleAtFixedRate(task, delay, delay, TimeUnit.SECONDS);
     }
@@ -48,9 +49,19 @@ public class Main {
     }
   }
 
-  private static KafkaProducer<String, String> setupProducer(String url) {
+  private static KafkaProducer<String, String> setupProducer(String[] config) {
+    String url = config[0];
+    String username  = config[1];
+    String password = config[2];
+
     Properties properties = new Properties();
     properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, url);
+    String jaasTemplate = "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";";
+    String jaasConfig = String.format(jaasTemplate, username, password);
+    properties.put("security.protocol", "SASL_SSL");
+    properties.put("sasl.mechanism", "SCRAM-SHA-512");
+    properties.put("sasl.jaas.config", jaasConfig);
+
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
     properties.put(ProducerConfig.ACKS_CONFIG, "all");
