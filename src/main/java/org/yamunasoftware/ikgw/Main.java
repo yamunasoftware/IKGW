@@ -56,7 +56,7 @@ public class Main {
 
     Properties properties = new Properties();
     properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, url);
-    String jaasTemplate = "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";";
+    String jaasTemplate = "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"%s\" password=\"%s\";";
     String jaasConfig = String.format(jaasTemplate, username, password);
     properties.put("security.protocol", "SASL_SSL");
     properties.put("sasl.mechanism", "SCRAM-SHA-512");
