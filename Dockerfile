@@ -10,4 +10,4 @@ WORKDIR /app
 RUN groupadd -r appgroup && useradd -r -g appgroup -s /bin/false appuser
 COPY --from=build --chown=appuser:appgroup /app/target/*.jar app.jar
 USER appuser
-ENTRYPOINT ["java", "-XX:+UseG1GC", "-XX:+ExitOnOutOfMemoryError", "-jar", "IMADDS-1.0.0.jar"]
+ENTRYPOINT ["java", "-XX:+UseG1GC", "-XX:+ExitOnOutOfMemoryError", "-jar", "IKGW-1.0.0.jar"]
