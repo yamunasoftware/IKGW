@@ -8,7 +8,9 @@ public class SensorReading {
   public float humidity;
   public float pressure;
 
-  public SensorReading(String deviceId, String deviceType, int channel, float temperature, float humidity, float pressure) {
+  public SensorReading(
+    String deviceId, String deviceType, int channel, float temperature, float humidity, float pressure
+  ) {
     this.deviceId = deviceId;
     this.deviceType = deviceType;
     this.channel = channel;
