@@ -1,0 +1,11 @@
+services:
+  ikgw:
+    build:
+      context: .
+    networks:
+      - ikgw-network
+    deploy:
+      mode: replicated
+      replicas: 4
+      restart_policy:
+        condition: on-failure

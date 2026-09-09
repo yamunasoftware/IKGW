@@ -1,17 +1,13 @@
-FROM vegardit/graalvm-maven:21.0.2 AS builder
-WORKDIR /main
-COPY src ./src
+FROM maven:3.9.6-eclipse-temurin-21-jammy AS build
+WORKDIR /app
 COPY pom.xml .
+RUN mvn dependency:go-offline -B
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-RUN mvn -B dependency:go-offline
-RUN mvn -B clean package
-RUN native-image \
-    --no-fallback \
-    --enable-url-protocols=http,https \
-    -jar target/*.jar \
-    ikgw
-
-FROM debian:trixie
-WORKDIR /main
-COPY --from=builder /main/ikgw /main/ikgw
-ENTRYPOINT ["/main/ikgw"]
+FROM eclipse-temurin:21-jre-jammy AS production
+WORKDIR /app
+RUN groupadd -r appgroup && useradd -r -g appgroup -s /bin/false appuser
+COPY --from=build --chown=appuser:appgroup /app/target/*.jar app.jar
+USER appuser
+ENTRYPOINT ["java", "-XX:+UseG1GC", "-XX:+ExitOnOutOfMemoryError", "-jar", "IMADDS-1.0.0.jar"]
