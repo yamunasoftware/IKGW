@@ -13,17 +13,21 @@ import org.slf4j.LoggerFactory;
 public class Controller {
   private final String kafkaTopic;
   private final Logger logger = LoggerFactory.getLogger(Controller.class);
-  private final KafkaTemplate<String, SensorReading> kafkaTemplate;
+  private final KafkaTemplate<String, SensorReadingMessage> kafkaTemplate;
 
   @Autowired
-  public Controller(KafkaTemplate<String, SensorReading> kafkaTemplate, @Value("KAFKA_TOPIC") String kafkaTopic) {
+  public Controller(KafkaTemplate<String, SensorReadingMessage> kafkaTemplate, @Value("KAFKA_TOPIC") String kafkaTopic) {
     this.kafkaTemplate = kafkaTemplate;
     this.kafkaTopic = kafkaTopic;
   }
 
   @PostMapping("publish")
   public void publishMessage(@RequestBody SensorReading reading) {
-    try { kafkaTemplate.send(kafkaTopic, reading); }
+    try {
+      SensorReadingMessage message = new SensorReadingMessage(reading);
+      kafkaTemplate.send(kafkaTopic, message);
+    }
+
     catch (Exception e) {
       logger.error("Unexpected Error in POST /ikgw/api/publish", e);
     }
