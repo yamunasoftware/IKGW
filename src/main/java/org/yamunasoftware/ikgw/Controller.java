@@ -11,8 +11,9 @@ import org.slf4j.LoggerFactory;
 @RestController
 @RequestMapping("/ikgw/api")
 public class Controller {
+  private static final Logger logger = LoggerFactory.getLogger(Controller.class);
+
   private final String kafkaTopic;
-  private final Logger logger = LoggerFactory.getLogger(Controller.class);
   private final KafkaTemplate<String, SensorReadingMessage> kafkaTemplate;
 
   @Autowired

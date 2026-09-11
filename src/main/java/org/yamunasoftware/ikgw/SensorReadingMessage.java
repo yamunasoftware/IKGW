@@ -10,7 +10,7 @@ public class SensorReadingMessage {
   public float humidity;
   public float pressure;
   public long readingTimestamp;
-  public long recievedTimestamp;
+  public long receivedTimestamp;
 
   public SensorReadingMessage(SensorReading reading) {
     this.deviceId = reading.deviceId;
@@ -20,6 +20,6 @@ public class SensorReadingMessage {
     this.humidity = reading.humidity;
     this.pressure = reading.pressure;
     this.readingTimestamp = reading.timestamp;
-    this.recievedTimestamp = Instant.now().getEpochSecond();
+    this.receivedTimestamp = Instant.now().getEpochSecond();
   }
 }
