@@ -9,6 +9,7 @@ services:
       replicas: 4
       restart_policy:
         condition: on-failure
+        max_attempts: 3
 
 networks:
   ikgw-network:
