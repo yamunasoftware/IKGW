@@ -30,7 +30,7 @@ public class Controller {
   }
 
   @GetMapping("health")
-  public ResponseEntity<String> health() {
+  public ResponseEntity<String> getHealth() {
     try {
       return new  ResponseEntity<>(HttpStatus.OK);
     }
@@ -41,8 +41,8 @@ public class Controller {
     }
   }
 
-  @PostMapping("publish")
-  public ResponseEntity<String> publishMessage(@RequestBody SensorReading reading) {
+  @PostMapping("message")
+  public ResponseEntity<String> postMessage(@RequestBody SensorReading reading) {
     try {
       SensorReadingMessage message = new SensorReadingMessage(reading);
       kafkaTemplate.send(kafkaTopic, message);
@@ -50,7 +50,7 @@ public class Controller {
     }
 
     catch (Exception e) {
-      logger.error("Unexpected Error in POST /ikgw/api/publish", e);
+      logger.error("Unexpected Error in POST /ikgw/api/message", e);
       return new  ResponseEntity<>("Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
